@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 # =====================================================
-# GLOBAL CSS (STABLE + CLEAN)
+# GLOBAL CSS (FINAL + FIXED)
 # =====================================================
 st.markdown("""
 <style>
@@ -21,7 +21,7 @@ st.markdown("""
     background-color: #ffffff;
 }
 
-/* ---------------- SIDEBAR (PowerBI style) ---------------- */
+/* ---------------- SIDEBAR ---------------- */
 section[data-testid="stSidebar"] > div {
     background: linear-gradient(180deg, #fdeaea, #ffffff);
     border-right: 4px solid #c8102e;
@@ -46,7 +46,29 @@ span[data-baseweb="tag"] {
     color: white !important;
 }
 
-/* ---------------- STICKY HEADER ---------------- */
+/* ===== FIX: PLACEHOLDER + DROPDOWN TEXT ===== */
+section[data-testid="stSidebar"] ::placeholder {
+    color: #6b7280 !important;
+    opacity: 1 !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] {
+    color: #000000 !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] span {
+    color: #000000 !important;
+}
+
+section[data-testid="stSidebar"] div[role="combobox"] {
+    color: #000000 !important;
+}
+
+section[data-testid="stSidebar"] svg {
+    fill: #000000 !important;
+}
+
+/* ---------------- HEADER ---------------- */
 .sticky-header {
     position: sticky;
     top: 0;
@@ -54,8 +76,6 @@ span[data-baseweb="tag"] {
     background: #00732f;
     padding: 26px 40px;
     margin-bottom: 30px;
-    width: 100%;
-    box-sizing: border-box;
 }
 
 /* ---------------- KPI CARDS ---------------- */
@@ -109,48 +129,35 @@ def yoy(curr, prev):
     return f"{((curr - prev) / prev) * 100:.1f}%"
 
 # =====================================================
-# LOAD DATA
+# LOAD DATA (ROBUST)
 # =====================================================
 @st.cache_data
 def load_data():
     df = pd.read_csv("DLD_SAMPLE.csv")
-
-    # Normalize column names
     df.columns = [c.strip().lower() for c in df.columns]
 
     # Detect date column
-    date_col = None
-    for c in df.columns:
-        if "date" in c:
-            date_col = c
-            break
-
-    if date_col is None:
-        st.error("No date column found in dataset.")
+    date_col = next((c for c in df.columns if "date" in c), None)
+    if not date_col:
+        st.error("No date column found.")
         st.stop()
 
     df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
 
-    # Detect amount/value column
-    amount_col = None
-    for c in df.columns:
-        if "amount" in c or "value" in c or "price" in c:
-            amount_col = c
-            break
-
-    if amount_col is None:
-        st.error("No valid amount/value column found in dataset.")
+    # Detect amount column
+    amount_col = next((c for c in df.columns if any(x in c for x in ["amount", "value", "price"])), None)
+    if not amount_col:
+        st.error("No amount/value column found.")
         st.stop()
 
     df = df.dropna(subset=[date_col, amount_col])
 
-    # Create derived columns
+    # Derived columns
     df["Year"] = df[date_col].dt.year
     df["Month"] = df[date_col].dt.to_period("M").astype(str)
     df["Amount"] = df[amount_col]
 
     return df
-
 
 df = load_data()
 
@@ -160,19 +167,19 @@ df = load_data()
 st.sidebar.markdown("## 🔎 Filters")
 
 years = sorted(df["Year"].unique())
-areas = sorted(df["area_name_en"].dropna().unique())
-types = sorted(df["property_type_en"].dropna().unique())
+areas = sorted(df.get("area_name_en", pd.Series()).dropna().unique())
+types = sorted(df.get("property_type_en", pd.Series()).dropna().unique())
 
 with st.sidebar.container():
-    st.markdown('<div class="filter-card">📅 <b>Select Year</b>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-card"><b>📅 Select Year</b>', unsafe_allow_html=True)
     sel_year = st.multiselect("", years, default=years[-3:])
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="filter-card">📍 <b>Select Area</b>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-card"><b>📍 Select Area</b>', unsafe_allow_html=True)
     sel_area = st.multiselect("", areas)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="filter-card">🏠 <b>Property Type</b>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-card"><b>🏠 Property Type</b>', unsafe_allow_html=True)
     sel_type = st.multiselect("", types)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -181,38 +188,23 @@ with st.sidebar.container():
 # =====================================================
 if sel_year:
     df = df[df["Year"].isin(sel_year)]
-if sel_area:
+if sel_area and "area_name_en" in df.columns:
     df = df[df["area_name_en"].isin(sel_area)]
-if sel_type:
+if sel_type and "property_type_en" in df.columns:
     df = df[df["property_type_en"].isin(sel_type)]
 
 # =====================================================
-# HEADER (STICKY + FIXED)
+# HEADER
 # =====================================================
 st.markdown("""
 <div class="sticky-header">
-  <div style="
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      max-width:1400px;
-      margin:auto;
-  ">
-    <div>
-      <h1 style="color:white; margin:0; font-size:34px;">
-        AE UAE Real Estate Transactions Dashboard
-      </h1>
-      <p style="color:#e5e7eb; margin-top:6px;">
-        Business Project – Interactive BI Dashboard
-      </p>
-    </div>
-    <img src="assets/uae_flag.png" width="70">
-  </div>
+  <h1 style="color:white;margin:0;">AE UAE Real Estate Transactions Dashboard</h1>
+  <p style="color:#e5e7eb;">Business Project – Interactive BI Dashboard</p>
 </div>
 """, unsafe_allow_html=True)
 
 # =====================================================
-# KPI + YoY
+# KPI SECTION
 # =====================================================
 current_year = df["Year"].max()
 prev_year = current_year - 1
@@ -251,56 +243,26 @@ c3.markdown(f"""
 # =====================================================
 st.subheader("📈 Monthly Transaction Value (AED)")
 monthly = df.groupby("Month", as_index=False)["Amount"].sum()
-fig1 = px.line(
-    monthly,
-    x="Month",
-    y="Amount",
-    markers=True,
-    hover_data={"Amount": ":,.0f"}
-)
+fig1 = px.line(monthly, x="Month", y="Amount", markers=True)
 fig1.update_traces(line_color="#00732f")
 st.plotly_chart(fig1, use_container_width=True)
 
 st.subheader("🏙️ Top Areas by Transaction Value")
-top_areas = df.groupby("area_name_en", as_index=False)["Amount"].sum().nlargest(10, "Amount")
-fig2 = px.bar(
-    top_areas,
-    x="area_name_en",
-    y="Amount",
-    hover_data={"Amount": ":,.0f"},
-    color_discrete_sequence=["#c8102e"]
-)
-st.plotly_chart(fig2, use_container_width=True)
+if "area_name_en" in df.columns:
+    top_areas = df.groupby("area_name_en", as_index=False)["Amount"].sum().nlargest(10, "Amount")
+    fig2 = px.bar(top_areas, x="area_name_en", y="Amount", color_discrete_sequence=["#c8102e"])
+    st.plotly_chart(fig2, use_container_width=True)
 
 # =====================================================
-# DOWNLOAD
-# =====================================================
-# =====================================================
-# EXPORT DATA (FILTER-BASED)
+# EXPORT
 # =====================================================
 st.subheader("⬇️ Export Data")
-
-# Build descriptive filename
-parts = []
-
-if sel_year:
-    parts.append(f"{min(sel_year)}_{max(sel_year)}")
-if sel_area:
-    parts.append("areas")
-if sel_type:
-    parts.append("types")
-
-suffix = "_".join(parts) if parts else "all_data"
-file_name = f"uae_real_estate_{suffix}.csv"
-
 st.download_button(
-    label="📥 Download Filtered CSV",
-    data=df.to_csv(index=False),
-    file_name=file_name,
-    mime="text/csv"
+    "📥 Download Filtered CSV",
+    df.to_csv(index=False),
+    "uae_real_estate_filtered.csv",
+    "text/csv"
 )
-
-
 
 # =====================================================
 # FOOTER
