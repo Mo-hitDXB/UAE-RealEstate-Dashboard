@@ -113,7 +113,7 @@ def yoy(curr, prev):
 # =====================================================
 @st.cache_data
 def load_data():
-    df = pd.read_csv("DLD_CLEAN_BIG.csv")
+    df = pd.read_csv("DLD_SAMPLE.csv")
     df["instance_date"] = pd.to_datetime(df["instance_date"], errors="coerce")
     df = df.dropna(subset=["instance_date", "Amount"])
     df["Year"] = df["instance_date"].dt.year
