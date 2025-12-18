@@ -115,15 +115,54 @@ def yoy(curr, prev):
 def load_data():
     df = pd.read_csv("DLD_SAMPLE.csv")
 
-    # Convert date column
-    df["instance_date"] = pd.to_datetime(df["instance_date"], errors="coerce")
+    # -------------------------------
+    # AUTO-DETECT DATE COLUMN
+    # -------------------------------
+    possible_date_cols = [
+        "instance_date",
+        "transaction_date",
+        "registration_date",
+        "date"
+    ]
 
-    # Drop bad rows
-    df = df.dropna(subset=["instance_date", "Amount"])
+    date_col = next((c for c in possible_date_cols if c in df.columns), None)
 
-    # CREATE Year & Month (THIS WAS MISSING)
-    df["Year"] = df["instance_date"].dt.year
-    df["Month"] = df["instance_date"].dt.to_period("M").astype(str)
+    if date_col is None:
+        st.error("No valid date column found in dataset.")
+        st.stop()
+
+    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+
+    # -------------------------------
+    # AUTO-DETECT AMOUNT COLUMN
+    # -------------------------------
+    possible_amount_cols = [
+        "Amount",
+        "amount",
+        "transaction_value",
+        "price",
+        "total_value"
+    ]
+
+    amount_col = next((c for c in possible_amount_cols if c in df.columns), None)
+
+    if amount_col is None:
+        st.error("No valid amount/value column found in dataset.")
+        st.stop()
+
+    # -------------------------------
+    # CLEAN DATA
+    # -------------------------------
+    df = df.dropna(subset=[date_col, amount_col])
+
+    # Standardize column name
+    df["Amount"] = df[amount_col]
+
+    # -------------------------------
+    # DERIVED COLUMNS
+    # -------------------------------
+    df["Year"] = df[date_col].dt.year
+    df["Month"] = df[date_col].dt.to_period("M").astype(str)
 
     return df
 
