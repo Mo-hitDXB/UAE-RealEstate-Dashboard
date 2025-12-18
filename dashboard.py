@@ -113,11 +113,18 @@ def yoy(curr, prev):
 # =====================================================
 @st.cache_data
 def load_data():
-    return pd.read_csv("DLD_SAMPLE.csv")
+    df = pd.read_csv("DLD_SAMPLE.csv")
+
+    # Convert date column
     df["instance_date"] = pd.to_datetime(df["instance_date"], errors="coerce")
+
+    # Drop bad rows
     df = df.dropna(subset=["instance_date", "Amount"])
+
+    # CREATE Year & Month (THIS WAS MISSING)
     df["Year"] = df["instance_date"].dt.year
     df["Month"] = df["instance_date"].dt.to_period("M").astype(str)
+
     return df
 
 df = load_data()
