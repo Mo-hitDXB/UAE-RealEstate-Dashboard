@@ -115,56 +115,42 @@ def yoy(curr, prev):
 def load_data():
     df = pd.read_csv("DLD_SAMPLE.csv")
 
-    # -------------------------------
-    # AUTO-DETECT DATE COLUMN
-    # -------------------------------
-    possible_date_cols = [
-        "instance_date",
-        "transaction_date",
-        "registration_date",
-        "date"
-    ]
+    # Normalize column names
+    df.columns = [c.strip().lower() for c in df.columns]
 
-    date_col = next((c for c in possible_date_cols if c in df.columns), None)
+    # Detect date column
+    date_col = None
+    for c in df.columns:
+        if "date" in c:
+            date_col = c
+            break
 
     if date_col is None:
-        st.error("No valid date column found in dataset.")
+        st.error("No date column found in dataset.")
         st.stop()
 
     df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
 
-    # -------------------------------
-    # AUTO-DETECT AMOUNT COLUMN
-    # -------------------------------
-    possible_amount_cols = [
-        "Amount",
-        "amount",
-        "transaction_value",
-        "price",
-        "total_value"
-    ]
-
-    amount_col = next((c for c in possible_amount_cols if c in df.columns), None)
+    # Detect amount/value column
+    amount_col = None
+    for c in df.columns:
+        if "amount" in c or "value" in c or "price" in c:
+            amount_col = c
+            break
 
     if amount_col is None:
         st.error("No valid amount/value column found in dataset.")
         st.stop()
 
-    # -------------------------------
-    # CLEAN DATA
-    # -------------------------------
     df = df.dropna(subset=[date_col, amount_col])
 
-    # Standardize column name
-    df["Amount"] = df[amount_col]
-
-    # -------------------------------
-    # DERIVED COLUMNS
-    # -------------------------------
+    # Create derived columns
     df["Year"] = df[date_col].dt.year
     df["Month"] = df[date_col].dt.to_period("M").astype(str)
+    df["Amount"] = df[amount_col]
 
     return df
+
 
 df = load_data()
 
